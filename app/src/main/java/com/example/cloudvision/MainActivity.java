@@ -18,6 +18,7 @@ import com.google.api.services.vision.v1.VisionRequestInitializer;
 import com.google.api.services.vision.v1.model.AnnotateImageRequest;
 import com.google.api.services.vision.v1.model.BatchAnnotateImagesRequest;
 import com.google.api.services.vision.v1.model.BatchAnnotateImagesResponse;
+import com.google.api.services.vision.v1.model.EntityAnnotation;
 import com.google.api.services.vision.v1.model.FaceAnnotation;
 import com.google.api.services.vision.v1.model.Feature;
 import com.google.api.services.vision.v1.model.Image;
@@ -27,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -173,6 +175,41 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
     });
 }
 
+    public void ProcesarEtiquetas(View View){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                BatchAnnotateImagesRequest batchRequest = setBatchRequest("LABEL_DETECTION", getImageToProcess());
+
+                try {
+                    Vision.Images.Annotate  annotateRequest = vision.images().annotate(batchRequest);
+                    annotateRequest.setDisableGZipContent(true);
+                    BatchAnnotateImagesResponse response  = annotateRequest.execute();
+
+                    final StringBuilder message = new StringBuilder("Se ha encontrado los siguientes Objetos:\n\n");
+
+                List<EntityAnnotation> labels = response.getResponses().get(0).getLabelAnnotations();
+                if (labels != null) {
+                    for (EntityAnnotation label : labels)
+                        message.append(String.format(Locale.US, "%.2f: %s\n", label.getScore()*100, label.getDescription()));
+                } else {
+                       message.append("No hay ningún Objeto");
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        TextView imageDetail = (TextView)findViewById(R.id.textView2);
+                        imageDetail.setText(message.toString());
+                    }
+                });
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
 
 
 }
